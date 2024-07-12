@@ -136,8 +136,8 @@ namespace pumipic {
     else
       return Kokkos::trunc(Kokkos::log10(x)) + 1;
   }
-  void determineLengths(int& name_length, int& tt_length, int& min_length, int& max_length, int& cc_length,
-                        int& at_length) {
+  void determineLengths(int& name_length, int& tt_length, int& min_length, int& max_length, int& var_length,
+                        int& cc_length, int& at_length) {
     for (std::size_t index = 0; index < time_per_op.size(); ++index) {
       if (time_per_op[index].str.size() > name_length)
         name_length = time_per_op[index].str.size();
@@ -150,6 +150,9 @@ namespace pumipic {
       len = Kokkos::log10(time_per_op[index].max) + 8;
       if (len > max_length)
         max_length = len;
+      len = Kokkos::log10(Kokkos::pow(time_per_op[index].time, 2) / time_per_op[index].count) + 8;
+      if (len > var_length)
+        var_length = len;
       len = Kokkos::log10(time_per_op[index].count) + 1;
       if (len > cc_length)
         cc_length = len;
@@ -167,9 +170,10 @@ namespace pumipic {
         int tt_length = 10;
         int min_length = 10;
         int max_length = 10;
+        int var_length = 10;
         int cc_length = 10;
         int at_length = 12;
-        determineLengths(name_length, tt_length, min_length, max_length, cc_length, at_length);
+        determineLengths(name_length, tt_length, min_length, max_length, var_length, cc_length, at_length);
         sortTimeInfo(sort);
         std::stringstream buffer;
         //Header
@@ -179,6 +183,7 @@ namespace pumipic {
                << "Total Time" << std::setw(tt_length+3)
                << "Min Time" << std::setw(min_length+3)
                << "Max Time" << std::setw(max_length+3)
+               << "Variance" << std::setw(var_length+3)
                << "Call Count" << std::setw(cc_length+3)
                << "Average Time" << std::setw(cc_length+3) << "\n";
         for (int index = 0; index < time_per_op.size(); ++index) {
@@ -192,6 +197,8 @@ namespace pumipic {
                  << std::setw(min_length+3) << time_per_op[index].min
           //Max time spent on operation
                  << std::setw(max_length+3) << time_per_op[index].max
+          //Variance in operation
+                 << std::setw(var_length+3) << (Kokkos::pow(time_per_op[index].time, 2) / time_per_op[index].count)
           //Number of calls of operation
                  << std::setw(cc_length+3) << time_per_op[index].count
           //Average time per call
