@@ -163,7 +163,7 @@ namespace pumipic {
     MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank);
     if (isTiming()) {
       if (verbosity >= 0) {
-        int name_length = 9;
+        int name_length = 10;
         int tt_length = 10;
         int min_length = 10;
         int max_length = 10;
@@ -175,12 +175,12 @@ namespace pumipic {
         //Header
         buffer << "Timing Summary " << comm_rank << "\n";
         //Column heads
-        buffer << "Operation" << std::string(name_length - 6, ' ')
-               << "Total Time" << std::string(tt_length - 7, ' ')
-               << "Min Time" << std::string(min_length - 7, ' ')
-               << "Max Time" << std::string(max_length - 7, ' ')
-               << "Call Count" << std::string(cc_length - 7, ' ')
-               << "Average Time\n";
+        buffer << "Operation" << std::setw(name_length+6)
+               << "Total Time" << std::setw(tt_length+3)
+               << "Min Time" << std::setw(min_length+3)
+               << "Max Time" << std::setw(max_length+3)
+               << "Call Count" << std::setw(cc_length+3)
+               << "Average Time" << std::setw(cc_length+3) << "\n";
         for (int index = 0; index < time_per_op.size(); ++index) {
           //Operation name
           buffer << time_per_op[index].str.c_str()
