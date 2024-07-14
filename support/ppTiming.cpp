@@ -18,6 +18,7 @@ namespace {
                                          prebarrier(0), count(0), orig_index(index) {}
     std::string str;
     double time;
+    double timeSq;
     double max;
     double min;
     int count;
@@ -71,6 +72,7 @@ namespace pumipic {
         }
         int index = itr->second;
         time_per_op[index].time += seconds;
+        time_per_op[index].timeSq += Kokkos::pow(seconds, 2);
         ++(time_per_op[index].count);
         if (seconds > time_per_op[index].max) time_per_op[index].max = seconds;
         if (seconds < time_per_op[index].min) time_per_op[index].min = seconds;
@@ -139,6 +141,9 @@ namespace pumipic {
   void determineLengths(int& name_length, int& tt_length, int& min_length, int& max_length, int& var_length,
                         int& cc_length, int& at_length) {
     for (std::size_t index = 0; index < time_per_op.size(); ++index) {
+      double average = time_per_op[index].time / time_per_op[index].count;
+      double averageSq = time_per_op[index].timeSq / time_per_op[index].count;
+
       if (time_per_op[index].str.size() > name_length)
         name_length = time_per_op[index].str.size();
       int len = Kokkos::log10(time_per_op[index].time) + 8;
@@ -150,13 +155,13 @@ namespace pumipic {
       len = Kokkos::log10(time_per_op[index].max) + 8;
       if (len > max_length)
         max_length = len;
-      len = Kokkos::log10(Kokkos::pow(time_per_op[index].time, 2) / time_per_op[index].count) + 8;
+      len = Kokkos::log10(Kokkos::sqrt(averageSq - average*average)) + 8;
       if (len > var_length)
         var_length = len;
       len = Kokkos::log10(time_per_op[index].count) + 1;
       if (len > cc_length)
         cc_length = len;
-      len = Kokkos::log10(time_per_op[index].time / time_per_op[index].count) + 8;
+      len = Kokkos::log10(average) + 8;
       if (len > at_length)
         len = at_length;
     }
@@ -183,10 +188,12 @@ namespace pumipic {
                << "Total Time" << std::setw(tt_length+3)
                << "Min Time" << std::setw(min_length+3)
                << "Max Time" << std::setw(max_length+3)
-               << "Variance" << std::setw(var_length+3)
+               << "RMSD" << std::setw(var_length+3)
                << "Call Count" << std::setw(cc_length+3)
                << "Average Time" << std::setw(cc_length+3) << "\n";
         for (int index = 0; index < time_per_op.size(); ++index) {
+          double average = time_per_op[index].time / time_per_op[index].count;
+          double averageSq = time_per_op[index].timeSq / time_per_op[index].count;
           //Operation name
           buffer << time_per_op[index].str.c_str()
           //Fill space after operation name
@@ -197,13 +204,12 @@ namespace pumipic {
                  << std::setw(min_length+3) << time_per_op[index].min
           //Max time spent on operation
                  << std::setw(max_length+3) << time_per_op[index].max
-          //Variance in operation
-                 << std::setw(var_length+3) << (Kokkos::pow(time_per_op[index].time, 2) / time_per_op[index].count)
+          //Root mean square deviation
+                 << std::setw(var_length+3) << Kokkos::sqrt(averageSq - average*average)
           //Number of calls of operation
                  << std::setw(cc_length+3) << time_per_op[index].count
           //Average time per call
-                 << std::setw(at_length+3)
-                 << time_per_op[index].time / time_per_op[index].count;
+                 << std::setw(at_length+3) << average;
           if (time_per_op[index].hasPrebarrier)
             buffer <<"  Total Prebarrier=" << time_per_op[index].prebarrier;
           buffer <<'\n';
