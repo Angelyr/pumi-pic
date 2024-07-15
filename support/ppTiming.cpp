@@ -14,8 +14,8 @@ namespace {
 
   const double PREBARRIER_TOL = .000001;
   struct TimeInfo {
-    TimeInfo(std::string s, int index) : str(s), time(0), max(0), min(std::numeric_limits<double>::max()), hasPrebarrier(false),
-                                         prebarrier(0), count(0), orig_index(index) {}
+    TimeInfo(std::string s, int index) : str(s), time(0), timeSq(0), max(0), min(std::numeric_limits<double>::max()),
+                                         hasPrebarrier(false), prebarrier(0), count(0), orig_index(index) {}
     std::string str;
     double time;
     double timeSq;
