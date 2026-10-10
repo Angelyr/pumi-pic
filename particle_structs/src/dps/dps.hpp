@@ -33,7 +33,7 @@ namespace pumipic {
     typedef DPS_Input<DataTypes, MemSpace> Input_T;
 
     using DPS_DT = PS_DTBool<DataTypes>;
-    using AoSoA_t = Cabana::AoSoA<DPS_DT,device_type>;
+    using AoSoA_t = Cabana::AoSoA<DPS_DT,memory_space>;
 
     DPS(const DPS&) = delete;
     DPS& operator=(const DPS&) = delete;
@@ -47,6 +47,9 @@ namespace pumipic {
           MPI_Comm mpi_comm = MPI_COMM_WORLD);
     DPS(DPS_Input<DataTypes, MemSpace>&);
     ~DPS();
+
+    template <class MSpace>
+    void copyParticleData(Mirror<MSpace>* src);
 
     template <class MSpace>
     Mirror<MSpace>* copy();
@@ -236,6 +239,12 @@ namespace pumipic {
     gpuFree(fn_d);
 #endif
 
+  }
+
+  template <class DataTypes, class MemSpace>
+  template <class MSpace>
+  void DPS<DataTypes, MemSpace>::copyParticleData(Mirror<MSpace>* src) {
+    Cabana::deep_copy(*aosoa_, *(src->aosoa_));
   }
 
   template<class DataTypes, typename MemSpace>

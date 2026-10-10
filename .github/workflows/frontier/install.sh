@@ -2,7 +2,7 @@
 
 branch=$1
 
-cd /lustre/orion/phy122/scratch/castia5/globus-compute/pumi-pic-test
+cd /lustre/orion/cli193/scratch/yus9/globus-compute/pumi-pic-test
 
 module load rocm
 module load craype-accel-amd-gfx90a
@@ -82,6 +82,7 @@ cmake -S pumi-pic -B $bdir \
   -DIS_TESTING=ON \
   -DPS_IS_TESTING=ON \
   -DPS_USE_GPU_AWARE_MPI=ON \
+  -DCMAKE_CXX_STANDARD=20 \
   -DTEST_DATA_DIR=$PWD/pumi-pic/pumipic-data \
   -DOmega_h_PREFIX=$PWD/build-omega_h/install \
   -DKokkos_PREFIX=$PWD/build-kokkos/install \

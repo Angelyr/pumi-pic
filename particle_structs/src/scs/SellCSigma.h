@@ -73,6 +73,9 @@ template <std::size_t N> using Slice = Segment<DataType<N>, device_type>;
   ~SellCSigma();
 
   template <class MSpace>
+  void copyParticleData(Mirror<MSpace>* src);
+
+  template <class MSpace>
   Mirror<MSpace>* copy();
 
   //Functions from ParticleStructure
@@ -333,6 +336,12 @@ typename std::enable_if<!std::is_same<Kokkos::Serial, typename Space::execution_
     return C_max;
 }
 
+template <class DataTypes, class Space>
+template <class Space2>
+void SellCSigma<DataTypes, Space>::copyParticleData(Mirror<Space2>* src) {
+  CopyMemSpaceToMemSpace<Space, Space2, DataTypes>(ptcl_data, src->ptcl_data);
+}
+
 template<class DataTypes, typename MemSpace>
 template <class MSpace>
 typename SellCSigma<DataTypes, MemSpace>::template Mirror<MSpace>* SellCSigma<DataTypes, MemSpace>::copy() {
@@ -407,7 +416,7 @@ void SellCSigma<DataTypes,MemSpace>::printFormat(const char* prefix) const {
   kkGidHostMirror element_to_gid_host = deviceToHost(element_to_gid);
   kkLidHostMirror row_to_element_host = deviceToHost(row_to_element);
   kkLidHostMirror offsets_host = deviceToHost(offsets);
-  Kokkos::View<bool*>::HostMirror particle_mask_host = deviceToHost(particle_mask);
+  Kokkos::View<bool*>::host_mirror_type particle_mask_host = deviceToHost(particle_mask);
 
   std::stringstream ss;
   char buffer[1000];
