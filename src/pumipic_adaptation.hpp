@@ -256,9 +256,11 @@ struct ParticleAdapt : public UserTransfer, public MeshData<mesh_dim> {
   }
 
   void populateFields() {
-    Kokkos::parallel_for(ptcls->nPtcls(), KOKKOS_CLASS_LAMBDA(const LO pid) {
+    auto populate = KOKKOS_CLASS_LAMBDA(const LO, const LO pid, const LO mask) {
+      if (mask <= 0) return;
       assign2Elem(pid, pParent(pid));
-    });
+    };
+    pp::parallel_for(ptcls, populate, "ParticleAdapt populateFields");
   }
 
   OMEGA_H_DEVICE void snap2Surface(const LO pid, const LO elem, const I8 old_class_dim, const ClassId old_class_id) const {
@@ -286,7 +288,8 @@ struct ParticleAdapt : public UserTransfer, public MeshData<mesh_dim> {
     update(new_mesh);
 
     //Update modified elements
-    Kokkos::parallel_for(ptcls->nPtcls(), KOKKOS_CLASS_LAMBDA(const LO pid) {
+    auto updateRefined = KOKKOS_CLASS_LAMBDA(const LO, const LO pid, const LO mask) {
+      if (mask <= 0) return;
       auto oldElem = pParent(pid);
       if (old2New[oldElem] != -1) {//update unchanged element id
         pParent(pid) = old2New[oldElem];
@@ -353,7 +356,8 @@ struct ParticleAdapt : public UserTransfer, public MeshData<mesh_dim> {
         update2LowestParent(pid);
       }
       else Kokkos::abort("[ERROR] : element skipped during particle adaptation\n");
-    });
+    };
+    pp::parallel_for(ptcls, updateRefined, "ParticleAdapt refine");
   }
 
   void updatePtclsCavitySearch(Mesh& old_mesh, Mesh& new_mesh, LOs keys2prods, LOs prods2new_ents,  
@@ -361,7 +365,8 @@ struct ParticleAdapt : public UserTransfer, public MeshData<mesh_dim> {
     update(new_mesh);
     auto old2New = getUnchanged(old_mesh, mesh_dim, same_ents2old_ents, same_ents2new_ents);
     MeshData old_data = MeshData<mesh_dim>(old_mesh);
-    Kokkos::parallel_for(ptcls->nPtcls(), KOKKOS_CLASS_LAMBDA(const int pid) {
+    auto updateCavity = KOKKOS_CLASS_LAMBDA(const LO, const LO pid, const LO mask) {
+      if (mask <= 0) return;
       auto oldElem = pParent(pid);
       auto newElem = oldElem;
       auto oldChild = getChildElem(pid, old_data.downward);
@@ -383,13 +388,15 @@ struct ParticleAdapt : public UserTransfer, public MeshData<mesh_dim> {
 
       snap2Surface(pid, newElem, oldClassDim, oldClassID);
       assign2Elem(pid, newElem);
-    });
+    };
+    pp::parallel_for(ptcls, updateCavity, "ParticleAdapt cavity search");
   }
 
   virtual void snap(Mesh& mesh, const Omega_h::Reals& old_vert2coords, const Omega_h::Reals& warp) {
     update(mesh);
     auto adjElems = mesh.ask_dual();
-    Kokkos::parallel_for(ptcls->nPtcls(), KOKKOS_CLASS_LAMBDA(const int pid) {
+    auto snapParticles = KOKKOS_CLASS_LAMBDA(const LO, const LO pid, const LO mask) {
+      if (mask <= 0) return;
       auto elem = pParent(pid);
       auto child = getChildElem(pid);
       auto classID = class_id[pDim(pid)][child];
@@ -404,7 +411,8 @@ struct ParticleAdapt : public UserTransfer, public MeshData<mesh_dim> {
       }
       snap2Surface(pid, closestElem, classDim, classID);
       assign2Elem(pid, closestElem);
-    });
+    };
+    pp::parallel_for(ptcls, snapParticles, "ParticleAdapt snap");
   }
 
   virtual void coarsen(Mesh& old_mesh, Mesh& new_mesh, LOs keys2verts, Adj keys2doms, 
